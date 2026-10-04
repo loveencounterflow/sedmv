@@ -59,16 +59,32 @@ CMD DELIM FIND DELIM REPLACE DELIM FLAGS
 * **DELIM** is the first character after CMD. Any character except ASCII letters and digits is allowed. For
   `s` it occurs exactly three times.
 
-* **The delimiter cannot be unescaped.** When splitting, a backslash plus the following character is skipped
-  and passed on unchanged; what that means is up to the regex or the replacement text. Choosing `(` as
-  delimiter means giving up `()` as groups; that is the user's responsibility. Example: `'s(\(([(g'` is the
-  same as `'s/\(/[/g'` (replace every `(` in the name with `[`).
+* **A delimiter that is also an active RegEx character (like `*`, `+`, `(` and so on) cannot be used as an
+  active RegEx character (although it can still be escaped to become a literal character).** When splitting,
+  a backslash plus the following character is skipped and passed on unchanged; what that means is up to the
+  regex or the replacement text. Choosing `(` as delimiter means giving up `()` as groups; that is the
+  user's responsibility. As an example, consider the (somewhat unfortunately formulated) pattern
+  `'s(\(([(g'`: it uses a bare `(` as delimiter and a backslash-exscaped `\(` to mean 'the literal character
+  `(`' (as per the normal interpretation of `\(` in RegExes). It is the same as `'s/\(/[/g'`, name, replace
+  every `(` in the name with `[`.
 
-* **FLAGS** are regex flags for the FIND part, e.g. `i` [decided].
+* **FLAGS** are regex flags for the FIND part. Find patterns are interpreted with [S. Levithan's great
+  Regex+ library (`regex` on npm)](https://github.com/slevithan/regex); as a result, the `v` flag (enhanced
+  Unicode support) is implicitly always on while the `u` flag (for legacy Unicode support) cannot be used.
+  Also, positional capturing RegEx groups are not supported; you can only use either **unnamed** groups that
+  do **not** capture, or else **named** groups that **do** capture (and must be referenced by their
+  respective name in the replacement expression).
 
+  Other than that you can use any of the usual JS RegEx flags by putting them at the end of the Action String. Of particular
+  interest will be the `g` and `i` options who do retain their original interpretations:
 
-[proposal] More flags: `g` (all matches; the default is the first match only), `s`, `m`, `x` (extended
-syntax, see below). `n` and `v` are always on, `u` is an error.
+  * `g` will turn on global mode: whereas `'s/xx/cks/'` means 'find and replace the *first* occurrance of
+    `xx` with `cks` (`soxx-and-bloxx` -> `socks-and-bloxx`), `'s/xx/cks/g'` means 'find and replace *all*
+    occurrances of `xx` with `cks`'.
+
+  * `i` will turn on case-insensitive matching: while `'s/x/'` and `'s/x/g'` will match the first or all
+    occurrances of lower case letter `x`, `'s/x/i'` and `'s/x/gi'` will in addition match upper case letter
+    `X`.
 
 [proposal] Reject `\` as a delimiter. If the number of delimiters is wrong, the error message names the
 delimiter and the count found.
